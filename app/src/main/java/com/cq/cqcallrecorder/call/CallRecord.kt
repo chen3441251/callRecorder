@@ -40,7 +40,7 @@ class CallRecord private constructor(private val mContext: Context) {
         try {
             if (mCallRecordReceiver != null) {
                 //test code
-                mCallRecordReceiver?.stopRecord(mContext)
+//                mCallRecordReceiver?.stopRecord(mContext)
                 //test end
 
                 mContext.unregisterReceiver(mCallRecordReceiver)

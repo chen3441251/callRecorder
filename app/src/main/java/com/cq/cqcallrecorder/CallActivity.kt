@@ -3,11 +3,9 @@ package com.cq.cqcallrecorder
 import android.Manifest
 import android.annotation.TargetApi
 import android.content.Intent
-import android.media.MediaRecorder
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.view.View
 import com.cq.cqcallrecorder.call.CallRecord
 import com.cq.cqcallrecorder.mvvm.CQBaseActivity
@@ -15,7 +13,6 @@ import com.cq.cqcallrecorder.util.LogUtils
 import com.cq.cqcallrecorder.util.ToastUtil
 import kotlinx.android.synthetic.main.activity_call_ui.*
 import pub.devrel.easypermissions.EasyPermissions
-import java.io.File
 
 class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
 
@@ -81,7 +78,7 @@ class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
             return
         }
         val number = tvCallNumber.text.toString()
-        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number"));
+        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number"))
         startActivity(intent)
     }
 
@@ -146,25 +143,24 @@ class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun initRecorder() {
-        val parentPath = Environment.getExternalStorageDirectory().getPath() + File.separator + "cq"
-        val file = File(parentPath)
-        if (!file.exists()) {
-            println("make dirs " + file.mkdir())
-        }
+//        val parentPath = Environment.getExternalStorageDirectory().getPath() + File.separator + "cq"
+//        val file = File(parentPath)
+//        if (!file.exists()) {
+//            println("make dirs " + file.mkdir())
+//        }
+//        callRecord = CallRecord.Builder(this)
+//            .setLogEnable(true)
+//            .setRecordFileName("record")
+//            .setRecordDirName("cq")
+//            .setRecordDirPath(Environment.getExternalStorageDirectory().getPath()) // optional & default value
+//            .setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT) // optional & default value
+//            .setOutputFormat(MediaRecorder.OutputFormat.DEFAULT) // optional & default value
+//            .setAudioSource(MediaRecorder.AudioSource.DEFAULT) // optional & default value
+//            .setShowSeed(true) // optional & default value ->Ex: RecordFileName_incoming.amr || RecordFileName_outgoing.amr
+//            .build()
+//        callRecord.startCallReceiver()
 
-        callRecord = CallRecord.Builder(this)
-            .setLogEnable(true)
-            .setRecordFileName("record")
-            .setRecordDirName("cq")
-            .setRecordDirPath(Environment.getExternalStorageDirectory().getPath()) // optional & default value
-            .setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT) // optional & default value
-            .setOutputFormat(MediaRecorder.OutputFormat.DEFAULT) // optional & default value
-            .setAudioSource(MediaRecorder.AudioSource.DEFAULT) // optional & default value
-            .setShowSeed(true) // optional & default value ->Ex: RecordFileName_incoming.amr || RecordFileName_outgoing.amr
-            .build()
-
-
-        callRecord.startCallReceiver()
+        CallRecord.initService(this)
     }
 
     @TargetApi(Build.VERSION_CODES.M)

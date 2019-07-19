@@ -5,8 +5,11 @@ import android.media.MediaRecorder
 import com.aykuttasil.callrecord.helper.PrefsHelper
 import com.cq.cqcallrecorder.call.CallRecord
 import com.cq.cqcallrecorder.util.LogUtils
+import com.cq.cqcallrecorder.util.getCQRecordPath
+import com.cq.cqcallrecorder.util.getRecordPath
 import java.io.File
 import java.io.IOException
+import java.text.SimpleDateFormat
 import java.util.*
 
 open class CallRecordReceiver : PhoneCallReceiver() {
@@ -21,7 +24,10 @@ open class CallRecordReceiver : PhoneCallReceiver() {
         const val FILE_NAME_DIAL_TYPE_IN = "来电"
         const val FILE_NAME_DIAL_TYPE_OUT = "去电"
 
+        const val DATE_FORMAT_CALL_TIME = "yyyyMMddHHmmss"
+
     }
+
 
     private var recorder: MediaRecorder? = null
 
@@ -32,19 +38,23 @@ open class CallRecordReceiver : PhoneCallReceiver() {
     }
 
     override fun onIncomingCallAnswered(context: Context, number: String?, start: Date) {
-        startRecord(context, FILE_NAME_DIAL_TYPE_IN, number)
+//        startRecord(context, FILE_NAME_DIAL_TYPE_IN, number)
+//        startCallLog(number, start, FILE_NAME_DIAL_TYPE_IN)
     }
 
     override fun onIncomingCallEnded(context: Context, number: String?, start: Date, end: Date) {
-        stopRecord(context)
+//        stopRecord(context)
+        startCallLog(number, start, end, FILE_NAME_DIAL_TYPE_IN)
     }
 
     override fun onOutgoingCallStarted(context: Context, number: String?, start: Date) {
-        startRecord(context, FILE_NAME_DIAL_TYPE_OUT, number)
+//        startRecord(context, FILE_NAME_DIAL_TYPE_OUT, number)
+//        startCallLog(number, start, FILE_NAME_DIAL_TYPE_OUT)
     }
 
     override fun onOutgoingCallEnded(context: Context, number: String?, start: Date, end: Date) {
-        stopRecord(context)
+//        stopRecord(context)
+        startCallLog(number, start, end, FILE_NAME_DIAL_TYPE_OUT)
     }
 
     override fun onMissedCall(context: Context, number: String?, start: Date) {
@@ -54,6 +64,40 @@ open class CallRecordReceiver : PhoneCallReceiver() {
     protected fun onRecordingStarted(context: Context, audioFile: File?) {}
 
     protected fun onRecordingFinished(context: Context, audioFile: File?) {}
+
+    private fun startCallLog(number: String?, start: Date, end: Date, fileNameDialTypeOut: String): String? {
+        val formatter = SimpleDateFormat(DATE_FORMAT_CALL_TIME, Locale.getDefault())
+        val startTime = formatter.format(start)
+        val endTime = formatter.format(end)
+        val numberStringBuilder = StringBuilder(number ?: "")
+        if (numberStringBuilder.length == 11) {
+            numberStringBuilder.insert(3, " ")
+            numberStringBuilder.insert(8, " ")
+        }
+        val fileName = "${numberStringBuilder}_$startTime.amr"
+        LogUtils.d("test", "call log fileName = $fileName")
+
+        var dialType = ""
+        when (fileNameDialTypeOut) {
+            FILE_NAME_DIAL_TYPE_IN -> {
+                dialType = "来电"
+            }
+            FILE_NAME_DIAL_TYPE_OUT -> {
+                dialType = "去电"
+            }
+        }
+        val newFileName = "${number}_${startTime}_${endTime}_$dialType.amr"
+        LogUtils.d("test", "call log newFileName = $newFileName")
+
+        val recordParentPath = getRecordPath()
+        if (recordParentPath.isNotEmpty()) {
+            val file = File(recordParentPath, fileName)
+            val cqLogFile = File(getCQRecordPath(), newFileName)
+            file.copyTo(cqLogFile)
+        }
+
+        return fileName
+    }
 
     private fun startRecord(context: Context, seed: String, phoneNumber: String?) {
         try {
