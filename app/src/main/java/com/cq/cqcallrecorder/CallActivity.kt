@@ -18,7 +18,7 @@ class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
 
     private val permissionCode = 101
 
-    private lateinit var callRecord: CallRecord
+//    private lateinit var callRecord: CallRecord
 
     private var mCallNumberStr = StringBuilder()
 
@@ -39,11 +39,6 @@ class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
         checkPermissionsBeforeCall(mPermissionsNeed)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        callRecord.stopCallReceiver()
-    }
-
     private fun initListener() {
         btnNumber0.setOnClickListener(onClickListener)
         btnNumber1.setOnClickListener(onClickListener)
@@ -59,6 +54,11 @@ class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
         btnNumberB.setOnClickListener(onClickListener)
         ivBackSpace.setOnClickListener(onClickListener)
         llCallDial.setOnClickListener(onClickListener)
+        ivBackSpace.setOnLongClickListener {
+            mCallNumberStr.clear()
+            tvCallNumber.text = ""
+            return@setOnLongClickListener true
+        }
     }
 
     private fun appendNumber(number: String) {
@@ -78,8 +78,10 @@ class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
             return
         }
         val number = tvCallNumber.text.toString()
-        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number"))
-        startActivity(intent)
+        if (number.isNotEmpty()) {
+            val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number"))
+            startActivity(intent)
+        }
     }
 
     private val onClickListener = View.OnClickListener {
@@ -143,23 +145,6 @@ class CallActivity : CQBaseActivity(), EasyPermissions.PermissionCallbacks {
     }
 
     private fun initRecorder() {
-//        val parentPath = Environment.getExternalStorageDirectory().getPath() + File.separator + "cq"
-//        val file = File(parentPath)
-//        if (!file.exists()) {
-//            println("make dirs " + file.mkdir())
-//        }
-//        callRecord = CallRecord.Builder(this)
-//            .setLogEnable(true)
-//            .setRecordFileName("record")
-//            .setRecordDirName("cq")
-//            .setRecordDirPath(Environment.getExternalStorageDirectory().getPath()) // optional & default value
-//            .setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT) // optional & default value
-//            .setOutputFormat(MediaRecorder.OutputFormat.DEFAULT) // optional & default value
-//            .setAudioSource(MediaRecorder.AudioSource.DEFAULT) // optional & default value
-//            .setShowSeed(true) // optional & default value ->Ex: RecordFileName_incoming.amr || RecordFileName_outgoing.amr
-//            .build()
-//        callRecord.startCallReceiver()
-
         CallRecord.initService(this)
     }
 

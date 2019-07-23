@@ -75,27 +75,27 @@ open class CallRecordReceiver : PhoneCallReceiver() {
             numberStringBuilder.insert(8, " ")
         }
         val fileName = "${numberStringBuilder}_$startTime.amr"
-        LogUtils.d("test", "call log fileName = $fileName")
 
-        var dialType = ""
-        when (fileNameDialTypeOut) {
-            FILE_NAME_DIAL_TYPE_IN -> {
-                dialType = "来电"
-            }
-            FILE_NAME_DIAL_TYPE_OUT -> {
-                dialType = "去电"
-            }
+        val dialType = when (fileNameDialTypeOut) {
+            FILE_NAME_DIAL_TYPE_IN -> "来电"
+            FILE_NAME_DIAL_TYPE_OUT -> "去电"
+            else -> ""
         }
         val newFileName = "${number}_${startTime}_${endTime}_$dialType.amr"
-        LogUtils.d("test", "call log newFileName = $newFileName")
 
         val recordParentPath = getRecordPath()
         if (recordParentPath.isNotEmpty()) {
             val file = File(recordParentPath, fileName)
             val cqLogFile = File(getCQRecordPath(), newFileName)
-            file.copyTo(cqLogFile)
+            LogUtils.d(TAG, "fileName = $fileName")
+            LogUtils.d(TAG, "newFileName = $newFileName")
+            try {
+                if (file.exists() && !cqLogFile.exists())
+                    file.copyTo(cqLogFile)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
         }
-
         return fileName
     }
 
