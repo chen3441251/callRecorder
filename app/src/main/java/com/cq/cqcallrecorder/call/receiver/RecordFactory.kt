@@ -5,105 +5,27 @@ import android.media.MediaRecorder
 import com.aykuttasil.callrecord.helper.PrefsHelper
 import com.cq.cqcallrecorder.call.CallRecord
 import com.cq.cqcallrecorder.util.LogUtils
-import com.cq.cqcallrecorder.util.getCQRecordPath
-import com.cq.cqcallrecorder.util.getRecordPath
 import java.io.File
 import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.*
 
-open class CallRecordReceiver : PhoneCallReceiver() {
+class RecordFactory(private val listener: OnRecordListener? = null) {
 
-    companion object {
-        private val TAG = CallRecordReceiver::class.java.simpleName
-
-        const val ACTION_IN = "android.intent.action.PHONE_STATE"
-        const val ACTION_OUT = "android.intent.action.NEW_OUTGOING_CALL"
-        const val EXTRA_PHONE_NUMBER = "android.intent.extra.PHONE_NUMBER"
-
-        const val FILE_NAME_DIAL_TYPE_IN = "来电"
-        const val FILE_NAME_DIAL_TYPE_OUT = "去电"
-
-        const val DATE_FORMAT_CALL_TIME = "yyyyMMddHHmmss"
-
+    interface OnRecordListener {
+        fun onRecordingStarted(context: Context, audioFile: File?)
+        fun onRecordingFinished(context: Context, audioFile: File?)
     }
 
+    private val TAG = this.javaClass.simpleName
 
     private var recorder: MediaRecorder? = null
 
     private var audioFile: File? = null
     private var isRecordStarted = false
 
-    override fun onIncomingCallReceived(context: Context, number: String?, start: Date) {
-    }
-
-    override fun onIncomingCallAnswered(context: Context, number: String?, start: Date) {
-//        startRecord(context, FILE_NAME_DIAL_TYPE_IN, number)
-//        startCallLog(number, start, FILE_NAME_DIAL_TYPE_IN)
-    }
-
-    override fun onIncomingCallEnded(context: Context, number: String?, start: Date, end: Date) {
-//        stopRecord(context)
-        startCallLog(number, start, end, FILE_NAME_DIAL_TYPE_IN)
-    }
-
-    override fun onOutgoingCallStarted(context: Context, number: String?, start: Date) {
-//        startRecord(context, FILE_NAME_DIAL_TYPE_OUT, number)
-//        startCallLog(number, start, FILE_NAME_DIAL_TYPE_OUT)
-    }
-
-    override fun onOutgoingCallEnded(context: Context, number: String?, start: Date, end: Date) {
-//        stopRecord(context)
-        startCallLog(number, start, end, FILE_NAME_DIAL_TYPE_OUT)
-    }
-
-    override fun onMissedCall(context: Context, number: String?, start: Date) {
-    }
-
-    // Derived classes could override these to respond to specific events of interest
-    protected fun onRecordingStarted(context: Context, audioFile: File?) {}
-
-    protected fun onRecordingFinished(context: Context, audioFile: File?) {}
-
-    private fun startCallLog(number: String?, start: Date, end: Date, fileNameDialTypeOut: String): String? {
-        val formatter = SimpleDateFormat(DATE_FORMAT_CALL_TIME, Locale.getDefault())
-        val startTime = formatter.format(start)
-        val endTime = formatter.format(end)
-        val numberStringBuilder = StringBuilder(number ?: "")
-        if (numberStringBuilder.length == 11) {
-            numberStringBuilder.insert(3, " ")
-            numberStringBuilder.insert(8, " ")
-        }
-        val fileName = "${numberStringBuilder}_$startTime.amr"
-
-        val dialType = when (fileNameDialTypeOut) {
-            FILE_NAME_DIAL_TYPE_IN -> "来电"
-            FILE_NAME_DIAL_TYPE_OUT -> "去电"
-            else -> ""
-        }
-        val newFileName = "${number}_${startTime}_${endTime}_$dialType.amr"
-
-        val recordParentPath = getRecordPath()
-        if (recordParentPath.isNotEmpty()) {
-            val file = File(recordParentPath, fileName)
-            val cqLogFile = File(getCQRecordPath(), newFileName)
-            LogUtils.d(TAG, "fileName = $fileName")
-            LogUtils.d(TAG, "newFileName = $newFileName")
-            try {
-                if (file.exists() && !cqLogFile.exists())
-                    file.copyTo(cqLogFile)
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-        }
-        return fileName
-    }
-
-    private fun startRecord(context: Context, seed: String, phoneNumber: String?) {
+    private fun startRecord(context: Context, number: String, phoneNumber: String?) {
         try {
             val isSaveFile = PrefsHelper.readPrefBool(context, CallRecord.PREF_SAVE_FILE)
 
-            // is save file?
             if (!isSaveFile) {
                 return
             }
@@ -112,8 +34,6 @@ open class CallRecordReceiver : PhoneCallReceiver() {
                 try {
                     recorder?.stop()  // stop the recording
                 } catch (e: RuntimeException) {
-                    // RuntimeException is thrown when stop() is called immediately after start().
-                    // In this case the output file is not properly constructed ans should be deleted.
                     LogUtils.d(TAG, "RuntimeException: stop() is called immediately after start()")
                     audioFile?.delete()
                 }
@@ -121,10 +41,10 @@ open class CallRecordReceiver : PhoneCallReceiver() {
                 releaseMediaRecorder()
                 isRecordStarted = false
             } else {
-                if (prepareAudioRecorder(context, seed, phoneNumber)) {
+                if (prepareAudioRecorder(context, number, phoneNumber)) {
                     recorder!!.start()
                     isRecordStarted = true
-                    onRecordingStarted(context, audioFile)
+                    listener?.onRecordingStarted(context, audioFile)
                     LogUtils.i(TAG, "record start")
                 } else {
                     releaseMediaRecorder()
@@ -147,7 +67,7 @@ open class CallRecordReceiver : PhoneCallReceiver() {
             if (recorder != null && isRecordStarted) {
                 releaseMediaRecorder()
                 isRecordStarted = false
-                onRecordingFinished(context, audioFile)
+                listener?.onRecordingFinished(context, audioFile)
                 LogUtils.i(TAG, "record stop")
             }
         } catch (e: Exception) {
@@ -170,19 +90,6 @@ open class CallRecordReceiver : PhoneCallReceiver() {
             val outputFormat = PrefsHelper.readPrefInt(context, CallRecord.PREF_OUTPUT_FORMAT)
             val audioSource = PrefsHelper.readPrefInt(context, CallRecord.PREF_AUDIO_SOURCE)
             val audioEncoder = PrefsHelper.readPrefInt(context, CallRecord.PREF_AUDIO_ENCODER)
-
-            /*
-            var file_name = PrefsHelper.readPrefString(context, CallRecord.PREF_FILE_NAME)
-            val dir_path = PrefsHelper.readPrefString(context, CallRecord.PREF_DIR_PATH)
-            val dir_name = PrefsHelper.readPrefString(context, CallRecord.PREF_DIR_NAME)
-            val show_seed = PrefsHelper.readPrefBool(context, CallRecord.PREF_SHOW_SEED)
-            val show_phone_number =
-                PrefsHelper.readPrefBool(context, CallRecord.PREF_SHOW_PHONE_NUMBER)
-            val output_format = PrefsHelper.readPrefInt(context, CallRecord.PREF_OUTPUT_FORMAT)
-            val audio_source = PrefsHelper.readPrefInt(context, CallRecord.PREF_AUDIO_SOURCE)
-            val audio_encoder = PrefsHelper.readPrefInt(context, CallRecord.PREF_AUDIO_ENCODER)
-            */
-
             val sampleDir = File("$dirPath/$dirName")
 
             if (!sampleDir.exists()) {
@@ -231,7 +138,7 @@ open class CallRecordReceiver : PhoneCallReceiver() {
                 setOutputFormat(outputFormat)
                 setAudioEncoder(audioEncoder)
                 setOutputFile(audioFile!!.absolutePath)
-                setOnErrorListener { mr, what, extra ->
+                setOnErrorListener { _, what, extra ->
                     LogUtils.d(TAG, "record error : what = $what extra = $extra")
                 }
             }
@@ -263,5 +170,4 @@ open class CallRecordReceiver : PhoneCallReceiver() {
         }
         recorder = null
     }
-
 }

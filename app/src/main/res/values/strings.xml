@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CQCallRecorder</string>
+    <string name="app_name">船奇录音</string>
     <string name="text_permission_rationale_request_again">本APP需要相应权限以保证正常使用，具体权限请点击"确定"查看</string>
     <string name="text_permission_rationale">本APP缺少相应权限，可能会影响正常使用APP</string>
 

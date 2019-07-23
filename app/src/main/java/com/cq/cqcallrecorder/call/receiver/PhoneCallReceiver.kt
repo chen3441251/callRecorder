@@ -17,9 +17,9 @@ abstract class PhoneCallReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         LogUtils.d(TAG, "onReceive")
-        if (intent.action == CallRecordReceiver.ACTION_OUT) {
+        if (intent.action == CallCopyReceiver.ACTION_OUT) {
             LogUtils.d(TAG, "intent.action = outgoing")
-            savedNumber = intent.extras!!.getString(CallRecordReceiver.EXTRA_PHONE_NUMBER)
+            savedNumber = intent.extras!!.getString(CallCopyReceiver.EXTRA_PHONE_NUMBER)
         } else {
             LogUtils.d(TAG, "intent.action = InComing")
             val number = intent.extras!!.getString(TelephonyManager.EXTRA_INCOMING_NUMBER)
@@ -94,14 +94,14 @@ abstract class PhoneCallReceiver : BroadcastReceiver() {
         if (telephonyManager == null)
             telephonyManager = context.getSystemService(Service.TELEPHONY_SERVICE) as TelephonyManager
         mPhoneStateListener.context = context
-        telephonyManager?.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        telephonyManager?.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE)
     }
 
     private fun removePhoneStateListener(context: Context?) {
         if (telephonyManager == null)
             telephonyManager = context?.getSystemService(Service.TELEPHONY_SERVICE) as TelephonyManager
         mPhoneStateListener.context = context
-        telephonyManager?.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+        telephonyManager?.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE)
     }
 
     private val mPhoneStateListener = object : PhoneStateListener() {

@@ -4,14 +4,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.MediaRecorder
+import android.os.Build
 import android.os.Environment
 import com.aykuttasil.callrecord.helper.PrefsHelper
-import com.cq.cqcallrecorder.call.receiver.CallRecordReceiver
+import com.cq.cqcallrecorder.call.receiver.CallCopyReceiver
 import com.cq.cqcallrecorder.call.service.CallRecordService
 import com.cq.cqcallrecorder.util.LogUtils
 
 class CallRecord private constructor(private val mContext: Context) {
-    private var mCallRecordReceiver: CallRecordReceiver? = null
+    private var mCallCopyReceiver: CallCopyReceiver? = null
 
     val stateSaveFile: Boolean
         get() = PrefsHelper.readPrefBool(mContext, PREF_SAVE_FILE)
@@ -27,24 +28,24 @@ class CallRecord private constructor(private val mContext: Context) {
 
     fun startCallReceiver() {
         val intentFilter = IntentFilter()
-        intentFilter.addAction(CallRecordReceiver.ACTION_IN)
-        intentFilter.addAction(CallRecordReceiver.ACTION_OUT)
+        intentFilter.addAction(CallCopyReceiver.ACTION_IN)
+        intentFilter.addAction(CallCopyReceiver.ACTION_OUT)
 
-        if (mCallRecordReceiver == null) {
-            mCallRecordReceiver = CallRecordReceiver()
+        if (mCallCopyReceiver == null) {
+            mCallCopyReceiver = CallCopyReceiver()
         }
-        mContext.registerReceiver(mCallRecordReceiver, intentFilter)
+        mContext.registerReceiver(mCallCopyReceiver, intentFilter)
     }
 
     fun stopCallReceiver() {
         try {
-            if (mCallRecordReceiver != null) {
+            if (mCallCopyReceiver != null) {
                 //test code
-//                mCallRecordReceiver?.stopRecord(mContext)
+//                mCallCopyReceiver?.stopRecord(mContext)
                 //test end
 
-                mContext.unregisterReceiver(mCallRecordReceiver)
-                mCallRecordReceiver = null
+                mContext.unregisterReceiver(mCallCopyReceiver)
+                mCallCopyReceiver = null
             }
         } catch (e: Exception) {
             LogUtils.e()
@@ -55,7 +56,10 @@ class CallRecord private constructor(private val mContext: Context) {
         val intent = Intent()
         intent.setClass(mContext, CallRecordService::class.java)
 
-        mContext.startService(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mContext.startForegroundService(intent)
+        } else
+            mContext.startService(intent)
         LogUtils.i(TAG, "startService()")
     }
 
@@ -108,8 +112,8 @@ class CallRecord private constructor(private val mContext: Context) {
         LogUtils.i("CallRecord", "New dir path: $newDirPath")
     }
 
-    fun changeReceiver(receiver: CallRecordReceiver) {
-        mCallRecordReceiver = receiver
+    fun changeReceiver(receiver: CallCopyReceiver) {
+        mCallCopyReceiver = receiver
     }
 
     class Builder(private val mContext: Context) {

@@ -1,16 +1,22 @@
 package com.cq.cqcallrecorder.call.service
 
-import android.app.Service
+import android.app.*
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import androidx.annotation.Nullable
+import com.aykuttasil.callrecord.helper.PrefsHelper
+import com.cq.cqcallrecorder.CallActivity
 import com.cq.cqcallrecorder.call.CallRecord
 import com.cq.cqcallrecorder.util.LogUtils
-import com.aykuttasil.callrecord.helper.PrefsHelper
 
 open class CallRecordService : Service() {
 
+    private val TAG = CallRecordService::class.java.simpleName
     private lateinit var mCallRecord: CallRecord
+    private val notificationId = "cqService"
+    private val notificationName = "cqServiceName"
 
     @Nullable
     override fun onBind(intent: Intent): IBinder? {
@@ -19,6 +25,22 @@ open class CallRecordService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(notificationId, notificationName, NotificationManager.IMPORTANCE_HIGH)
+            notificationManager.createNotificationChannel(channel)
+        }
+        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, notificationId)
+        } else {
+            Notification.Builder(this)
+        }
+        notification.setContentTitle("船奇网")
+        notification.setContentText("录音服务正在运行中...")
+        val notificationIntent = Intent(this, CallActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0)
+        notification.setContentIntent(pendingIntent)
+        startForeground(1, notification.build())
         LogUtils.i(TAG, "onCreate()")
     }
 
@@ -38,8 +60,6 @@ open class CallRecordService : Service() {
             .setRecordDirPath(dirPath).setAudioEncoder(audioEncoder).setAudioSource(audioSource)
             .setOutputFormat(outputFormat).setShowSeed(showSeed).setShowPhoneNumber(showPhoneNumber)
             .build()
-
-        LogUtils.i(TAG, "mCallRecord.startCallReceiver()")
         mCallRecord.startCallReceiver()
 
         return Service.START_REDELIVER_INTENT
@@ -47,11 +67,8 @@ open class CallRecordService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        mCallRecord.stopCallReceiver()
+//        mCallRecord.stopCallReceiver()
         LogUtils.i(TAG, "onDestroy()")
     }
 
-    companion object {
-        private val TAG = CallRecordService::class.java.simpleName
-    }
 }
